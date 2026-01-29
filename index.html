@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Committee of One - Mind Control Sim</title>
+    <meta name="description" content="A dark psychological simulation game where you control the collective mind of a small town">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --accent-primary: #ffa657;
+            --accent-danger: #f85149;
+            --accent-safe: #3fb950;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --glow: rgba(255, 166, 87, 0.25);
+        }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: #0d1117;
+            background-image: 
+                radial-gradient(at 27% 37%, hsla(30, 78%, 55%, 0.08) 0px, transparent 0%),
+                radial-gradient(at 97% 21%, hsla(125, 71%, 45%, 0.05) 0px, transparent 50%),
+                radial-gradient(at 52% 99%, hsla(0, 0%, 0%, 0.1) 0px, transparent 50%);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 18% 45%, rgba(255, 166, 87, 0.04) 0%, transparent 45%),
+                radial-gradient(circle at 73% 68%, rgba(63, 185, 80, 0.04) 0%, transparent 45%);
+            animation: subtlePulse 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.65; }
+        }
+
+        .grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            padding: 1.2rem 2rem;
+            background: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 166, 87, 0.15);
+            animation: headerSlide 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes headerSlide {
+            from {
+                transform: translateY(-60px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+            text-shadow: 0 0 18px var(--glow);
+        }
+
+        .stats {
+            display: flex;
+            gap: 2.5rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.4rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .stability-bar {
+            width: 180px;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 166, 87, 0.25);
+            margin-top: 2px;
+        }
+
+        .stability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-danger) 0%, var(--accent-primary) 50%, var(--accent-safe) 100%);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Main game area */
+        main {
+            flex: 1;
+            display: flex;
+            gap: 1.2rem;
+            padding: 1.2rem;
+            overflow: hidden;
+        }
+
+        /* Town map */
+        .town-view {
+            flex: 2;
+            background: rgba(22, 27, 34, 0.65);
+            backdrop-filter: blur(8px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 166, 87, 0.18);
+            padding: 1.8rem;
+            position: relative;
+            overflow: hidden;
+            animation: contentFade 0.6s ease-out 0.15s both;
+        }
+
+        @keyframes contentFade {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .town-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.3rem;
+            height: 100%;
+        }
+
+        .citizen-card {
+            background: rgba(33, 38, 45, 0.75);
+            border: 2px solid rgba(255, 166, 87, 0.18);
+            border-radius: 6px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            animation: cardPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        .citizen-card:nth-child(1) { animation-delay: 0.08s; }
+        .citizen-card:nth-child(2) { animation-delay: 0.14s; }
+        .citizen-card:nth-child(3) { animation-delay: 0.2s; }
+        .citizen-card:nth-child(4) { animation-delay: 0.26s; }
+        .citizen-card:nth-child(5) { animation-delay: 0.32s; }
+        .citizen-card:nth-child(6) { animation-delay: 0.38s; }
+        .citizen-card:nth-child(7) { animation-delay: 0.44s; }
+        .citizen-card:nth-child(8) { animation-delay: 0.5s; }
+
+        @keyframes cardPop {
+            from {
+                opacity: 0;
+                transform: scale(0.85) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .citizen-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 166, 87, 0.6);
+            box-shadow: 0 4px 16px rgba(255, 166, 87, 0.2);
+        }
+
+        .citizen-card.selected {
+            border-color: var(--accent-primary);
+            background: rgba(33, 38, 45, 0.95);
+            box-shadow: 0 0 24px var(--glow);
+        }
+
+        .citizen-name {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .citizen-role {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .citizen-mood {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .mood-happy { 
+            background: rgba(63, 185, 80, 0.18); 
+            color: var(--accent-safe);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+        .mood-neutral { 
+            background: rgba(255, 166, 87, 0.18); 
+            color: var(--accent-primary);
+            border: 1px solid rgba(255, 166, 87, 0.3);
+        }
+        .mood-anxious { 
+            background: rgba(248, 81, 73, 0.18); 
+            color: var(--accent-danger);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        /* Citizen detail panel */
+        .citizen-panel {
+            flex: 1;
+            background: rgba(22, 27, 34, 0.65);
+            backdrop-filter: blur(8px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 166, 87, 0.18);
+            padding: 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.3rem;
+            animation: contentFade 0.6s ease-out 0.3s both;
+        }
+
+        .panel-section {
+            background: rgba(33, 38, 45, 0.65);
+            border-radius: 6px;
+            padding: 1.1rem;
+            border: 1px solid rgba(255, 166, 87, 0.12);
+        }
+
+        .panel-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent-primary);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .thought-text {
+            font-style: italic;
+            color: var(--text-secondary);
+            line-height: 1.65;
+            font-size: 0.95rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        button {
+            background: rgba(255, 166, 87, 0.08);
+            border: 1.5px solid rgba(255, 166, 87, 0.28);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 166, 87, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s ease, height 0.5s ease;
+        }
+
+        button:hover::before {
+            width: 280px;
+            height: 280px;
+        }
+
+        button:hover {
+            border-color: rgba(255, 166, 87, 0.65);
+            box-shadow: 0 0 16px rgba(255, 166, 87, 0.15);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        button:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        button span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .action-cost {
+            float: right;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        /* Event log */
+        .event-log {
+            max-height: 185px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            line-height: 1.7;
+        }
+
+        .event-log::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .event-log::-webkit-scrollbar-track {
+            background: rgba(33, 38, 45, 0.5);
+            border-radius: 3px;
+        }
+
+        .event-log::-webkit-scrollbar-thumb {
+            background: rgba(255, 166, 87, 0.25);
+            border-radius: 3px;
+        }
+
+        .event-log::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 166, 87, 0.4);
+        }
+
+        .event-item {
+            padding: 0.45rem 0;
+            border-bottom: 1px solid rgba(255, 166, 87, 0.08);
+            animation: eventSlide 0.35s ease-out;
+        }
+
+        @keyframes eventSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-time {
+            color: var(--accent-primary);
+            font-family: 'IBM Plex Mono', monospace;
+            margin-right: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 95px;
+            right: 2rem;
+            background: rgba(22, 27, 34, 0.96);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid var(--accent-primary);
+            border-radius: 6px;
+            padding: 0.9rem 1.4rem;
+            box-shadow: 0 4px 24px rgba(255, 166, 87, 0.2);
+            animation: notifSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1), notifOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) 2.6s;
+            z-index: 1000;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        @keyframes notifSlide {
+            from {
+                transform: translateX(380px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes notifOut {
+            to {
+                transform: translateX(380px);
+                opacity: 0;
+            }
+        }
+
+        /* Game over screen */
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(13, 17, 23, 0.96);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 2rem;
+            z-index: 2000;
+            animation: contentFade 0.6s ease-out;
+        }
+
+        .game-over h2 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 2.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--accent-primary);
+            text-shadow: 0 0 28px var(--glow);
+        }
+
+        .game-over p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 580px;
+            text-align: center;
+            line-height: 1.85;
+        }
+
+        .restart-btn {
+            padding: 0.95rem 2.3rem;
+            font-size: 1.05rem;
+            background: rgba(255, 166, 87, 0.15);
+            border: 1.5px solid var(--accent-primary);
+        }
+
+        /* Audio toggle */
+        .audio-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(22, 27, 34, 0.85);
+            border: 1.5px solid rgba(255, 166, 87, 0.28);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            font-size: 1.3rem;
+        }
+
+        .audio-toggle:hover {
+            border-color: rgba(255, 166, 87, 0.65);
+            box-shadow: 0 0 18px rgba(255, 166, 87, 0.15);
+            transform: scale(1.05);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Loading state - subtle touch */
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="grain"></div>
+    
+    <div id="game-container">
+        <header>
+            <div class="header-content">
+                <h1>Committee of One</h1>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Influence</div>
+                        <div class="stat-value" id="influence">100</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Day</div>
+                        <div class="stat-value" id="day">1</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Stability</div>
+                        <div class="stability-bar">
+                            <div class="stability-fill" id="stability-fill" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="town-view">
+                <div class="town-grid" id="town-grid">
+                    <!-- Citizens will be generated here -->
+                </div>
+            </div>
+
+            <div class="citizen-panel">
+                <div class="panel-section">
+                    <div class="panel-title">Current Thoughts</div>
+                    <div class="thought-text" id="citizen-thoughts">
+                        Select a citizen to read their mind...
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">Influence Actions</div>
+                    <div class="actions" id="actions">
+                        <button disabled>
+                            <span>Select a citizen first</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">Recent Events</div>
+                    <div class="event-log" id="event-log">
+                        <div class="event-item">
+                            <span class="event-time">Day 1</span>
+                            The hivemind awakens. The town is yours to shape.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="audio-toggle" id="audio-toggle" title="Toggle Sound">
+        🔊
+    </div>
+
+    <script>
+        // Audio system - using Web Audio API for sound effects
+        let audioContext;
+        let audioEnabled = true;
+        const sounds = {};
+
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // Simple tone generator for UI feedback
+        function playSound(frequency, duration, type = 'sine') {
+            if (!audioEnabled || !audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            // Fade out to prevent clicks
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        // Toggle sound on/off
+        document.getElementById('audio-toggle').addEventListener('click', () => {
+            audioEnabled = !audioEnabled;
+            document.getElementById('audio-toggle').textContent = audioEnabled ? '🔊' : '🔇';
+            if (audioEnabled && !audioContext) {
+                initAudio();
+            }
+        });
+
+        // Main game state object
+        const gameState = {
+            influence: 100,
+            day: 1,
+            stability: 75,
+            selectedCitizen: null,
+            citizens: [],
+            events: [],
+            gameOver: false
+        };
+
+        // Citizen data
+        const names = [
+            'Emma Hart', 'James Moore', 'Sarah Chen', 'Michael Torres',
+            'Rachel Kim', 'David Park', 'Lisa White', 'Robert Lee'
+        ];
+
+        const roles = [
+            'Mayor', 'Shopkeeper', 'Teacher', 'Doctor',
+            'Farmer', 'Librarian', 'Mechanic', 'Chef'
+        ];
+
+        const personalities = ['trusting', 'skeptical', 'anxious', 'optimistic'];
+
+        // Different thought patterns based on mood
+        const thoughts = {
+            happy: [
+                "Life in this town feels perfect lately.",
+                "I should help my neighbor with their garden.",
+                "Everything is going so well.",
+                "I'm grateful for this community."
+            ],
+            neutral: [
+                "Just another ordinary day.",
+                "I wonder what's for dinner tonight.",
+                "Should I check on the neighbors?",
+                "Things seem... normal enough."
+            ],
+            anxious: [
+                "Something feels wrong in this town.",
+                "Why is everyone acting so strange?",
+                "I can't shake this feeling of dread.",
+                "Maybe I should leave while I still can."
+            ]
+        };
+
+        // Create all citizens at game start
+        function initCitizens() {
+            gameState.citizens = names.map((name, i) => ({
+                id: i,
+                name: name,
+                role: roles[i],
+                mood: 'neutral',
+                personality: personalities[Math.floor(Math.random() * personalities.length)],
+                influence: 0,
+                thought: thoughts.neutral[Math.floor(Math.random() * thoughts.neutral.length)]
+            }));
+            renderCitizens();
+        }
+
+        // Render citizen cards in grid
+        function renderCitizens() {
+            const grid = document.getElementById('town-grid');
+            grid.innerHTML = '';
+            
+            gameState.citizens.forEach(citizen => {
+                const card = document.createElement('div');
+                card.className = 'citizen-card';
+                if (gameState.selectedCitizen?.id === citizen.id) {
+                    card.classList.add('selected');
+                }
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="citizen-name">${citizen.name}</div>
+                        <div class="citizen-role">${citizen.role}</div>
+                    </div>
+                    <div class="citizen-mood mood-${citizen.mood}">
+                        ${citizen.mood.toUpperCase()}
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => selectCitizen(citizen));
+                grid.appendChild(card);
+            });
+        }
+
+        // Select a citizen to view their thoughts and take actions
+        function selectCitizen(citizen) {
+            gameState.selectedCitizen = citizen;
+            document.getElementById('citizen-thoughts').textContent = `"${citizen.thought}"`;
+            
+            playSound(420, 0.1); // subtle click sound
+            
+            // Show available actions
+            const actionsDiv = document.getElementById('actions');
+            actionsDiv.innerHTML = `
+                <button onclick="plantIdea()">
+                    <span>Plant Idea <span class="action-cost">-15</span></span>
+                </button>
+                <button onclick="spreadRumor()">
+                    <span>Spread Rumor <span class="action-cost">-25</span></span>
+                </button>
+                <button onclick="amplifyEmotion('happy')">
+                    <span>Spread Joy <span class="action-cost">-20</span></span>
+                </button>
+                <button onclick="amplifyEmotion('anxious')">
+                    <span>Spread Fear <span class="action-cost">-20</span></span>
+                </button>
+            `;
+            
+            renderCitizens();
+        }
+
+        // Action: Plant a helpful idea in someone's mind
+        function plantIdea() {
+            if (!canAfford(15)) return;
+            
+            const citizen = gameState.selectedCitizen;
+            spendInfluence(15);
+            
+            const ideas = [
+                "I should check on my neighbor.",
+                "Maybe I should organize a community event.",
+                "I wonder if anyone needs help today.",
+                "I should visit the town square."
+            ];
+            
+            citizen.thought = ideas[Math.floor(Math.random() * ideas.length)];
+            citizen.influence += 10;
+            
+            adjustStability(5);
+            logEvent(`You planted an idea in ${citizen.name}'s mind.`);
+            playSound(580, 0.2, 'triangle');
+            
+            updateDisplay();
+        }
+
+        // Action: Spread a rumor through the town
+        function spreadRumor() {
+            if (!canAfford(25)) return;
+            
+            const citizen = gameState.selectedCitizen;
+            spendInfluence(25);
+            
+            const rumors = [
+                "Did you hear about the mayor? Something's not right.",
+                "People are saying strange things happen at night.",
+                "I heard whispers about someone leaving town.",
+                "They say the old well has been acting strange."
+            ];
+            
+            citizen.thought = rumors[Math.floor(Math.random() * rumors.length)];
+            
+            // Rumors spread anxiety to nearby citizens
+            const randomCitizen = gameState.citizens[Math.floor(Math.random() * gameState.citizens.length)];
+            if (randomCitizen.id !== citizen.id) {
+                randomCitizen.mood = 'anxious';
+                randomCitizen.thought = "I've been hearing strange rumors...";
+            }
+            
+            adjustStability(-10);
+            logEvent(`Rumors spread from ${citizen.name} through the town.`);
+            playSound(210, 0.3, 'sawtooth');
+            
+            updateDisplay();
+        }
+
+        // Action: Amplify an emotion (joy or fear)
+        function amplifyEmotion(emotion) {
+            if (!canAfford(20)) return;
+            
+            const citizen = gameState.selectedCitizen;
+            spendInfluence(20);
+            
+            citizen.mood = emotion;
+            citizen.thought = thoughts[emotion][Math.floor(Math.random() * thoughts[emotion].length)];
+            
+            // Emotions are contagious - spread to 1-2 others
+            const spreadCount = Math.random() > 0.5 ? 2 : 1;
+            for (let i = 0; i < spreadCount; i++) {
+                const randomCitizen = gameState.citizens[Math.floor(Math.random() * gameState.citizens.length)];
+                if (randomCitizen.id !== citizen.id) {
+                    randomCitizen.mood = emotion;
+                    randomCitizen.thought = thoughts[emotion][Math.floor(Math.random() * thoughts[emotion].length)];
+                }
+            }
+            
+            const stabilityChange = emotion === 'happy' ? 8 : -8;
+            adjustStability(stabilityChange);
+            
+            const emotionName = emotion === 'happy' ? 'joy' : 'fear';
+            logEvent(`${emotionName.charAt(0).toUpperCase() + emotionName.slice(1)} spreads from ${citizen.name}.`);
+            
+            playSound(emotion === 'happy' ? 780 : 160, 0.25, 'sine');
+            
+            updateDisplay();
+        }
+
+        // Check if player can afford an action
+        function canAfford(cost) {
+            if (gameState.influence < cost) {
+                showNotification('Not enough influence!');
+                playSound(105, 0.1, 'square');
+                return false;
+            }
+            return true;
+        }
+
+        function spendInfluence(amount) {
+            gameState.influence -= amount;
+        }
+
+        // Adjust town stability (win/lose condition)
+        function adjustStability(amount) {
+            gameState.stability += amount;
+            gameState.stability = Math.max(0, Math.min(100, gameState.stability));
+            
+            // Check win/lose conditions
+            if (gameState.stability <= 0) {
+                endGame('chaos');
+            } else if (gameState.stability >= 100) {
+                endGame('perfect');
+            }
+        }
+
+        // Add event to log
+        function logEvent(message) {
+            gameState.events.unshift({
+                day: gameState.day,
+                message: message
+            });
+            
+            const log = document.getElementById('event-log');
+            const item = document.createElement('div');
+            item.className = 'event-item';
+            item.innerHTML = `<span class="event-time">Day ${gameState.day}</span>${message}`;
+            log.insertBefore(item, log.firstChild);
+            
+            // Keep only last 10 events visible
+            if (log.children.length > 10) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        
+        function showNotification(message) {
+            const notif = document.createElement('div');
+            notif.className = 'notification';
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => {
+                notif.remove();
+            }, 3000);
+        }
+
+        // Update all UI elements
+        function updateDisplay() {
+            document.getElementById('influence').textContent = gameState.influence;
+            document.getElementById('day').textContent = gameState.day;
+            
+            const fillBar = document.getElementById('stability-fill');
+            fillBar.style.width = gameState.stability + '%';
+            
+            if (gameState.selectedCitizen) {
+                const citizen = gameState.citizens.find(c => c.id === gameState.selectedCitizen.id);
+                document.getElementById('citizen-thoughts').textContent = `"${citizen.thought}"`;
+            }
+            
+            renderCitizens();
+        }
+
+        // End game with different outcomes
+        function endGame(reason) {
+            if (gameState.gameOver) return;
+            gameState.gameOver = true;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'game-over';
+            
+            let title, message;
+            if (reason === 'chaos') {
+                title = 'CHAOS REIGNS';
+                message = 'The town has descended into complete chaos. Your influence over the collective mind has shattered. The experiment ends in disorder.';
+                playSound(110, 1, 'sawtooth');
+            } else if (reason === 'perfect') {
+                title = 'PERFECT HARMONY';
+                message = 'The town exists in perfect synchronization. Every mind aligned, every thought controlled. But at what cost? The experiment is complete.';
+                playSound(950, 1, 'sine');
+            } else {
+                title = 'SURVIVED';
+                message = `You maintained the delicate balance for ${gameState.day} days. The hivemind persists, neither too ordered nor too chaotic.`;
+                playSound(480, 1, 'triangle');
+            }
+            
+            overlay.innerHTML = `
+                <h2>${title}</h2>
+                <p>${message}</p>
+                <p>Days survived: ${gameState.day} | Final stability: ${gameState.stability}%</p>
+                <button class="restart-btn" onclick="restartGame()">
+                    <span>Begin Again</span>
+                </button>
+            `;
+            
+            document.body.appendChild(overlay);
+        }
+
+        function restartGame() {
+            location.reload();
+        }
+
+        // Random events system - keeps things interesting
+        function randomEvent() {
+            if (gameState.gameOver) return;
+            
+            const eventChance = Math.random();
+            
+            if (eventChance < 0.3) {
+                // Positive event
+                const events = [
+                    'A festival brings joy to the town.',
+                    'Good harvest this season.',
+                    'A stranger brings gifts to the town.',
+                    'Children organize a community cleanup.'
+                ];
+                const event = events[Math.floor(Math.random() * events.length)];
+                logEvent(event);
+                adjustStability(Math.floor(Math.random() * 10) + 5);
+                
+                // Make some citizens happy
+                const count = Math.floor(Math.random() * 3) + 1;
+                for (let i = 0; i < count; i++) {
+                    const citizen = gameState.citizens[Math.floor(Math.random() * gameState.citizens.length)];
+                    citizen.mood = 'happy';
+                    citizen.thought = thoughts.happy[Math.floor(Math.random() * thoughts.happy.length)];
+                }
+                
+                playSound(690, 0.3, 'triangle');
+            } else if (eventChance > 0.7) {
+                // Negative event
+                const events = [
+                    'Crops are failing in the fields.',
+                    'A fire breaks out near the town square.',
+                    'Someone goes missing overnight.',
+                    'Strange sounds echo through the night.'
+                ];
+                const event = events[Math.floor(Math.random() * events.length)];
+                logEvent(event);
+                adjustStability(-Math.floor(Math.random() * 10) - 5);
+                
+                // Make some citizens anxious
+                const count = Math.floor(Math.random() * 3) + 1;
+                for (let i = 0; i < count; i++) {
+                    const citizen = gameState.citizens[Math.floor(Math.random() * gameState.citizens.length)];
+                    citizen.mood = 'anxious';
+                    citizen.thought = thoughts.anxious[Math.floor(Math.random() * thoughts.anxious.length)];
+                }
+                
+                playSound(155, 0.3, 'sawtooth');
+            }
+            
+            updateDisplay();
+        }
+
+        // Day/night cycle - influence regenerates each day
+        function advanceDay() {
+            if (gameState.gameOver) return;
+            
+            gameState.day++;
+            gameState.influence = Math.min(100, gameState.influence + 30); // regen 30 influence per day
+            
+            randomEvent();
+            
+            // Natural mood decay toward neutral over time
+            gameState.citizens.forEach(citizen => {
+                if (Math.random() < 0.3) {
+                    citizen.mood = 'neutral';
+                    citizen.thought = thoughts.neutral[Math.floor(Math.random() * thoughts.neutral.length)];
+                }
+            });
+            
+            logEvent('A new day begins in the town.');
+            updateDisplay();
+        }
+
+        // Game initialization
+        initCitizens();
+        initAudio();
+
+        // Game loop timers
+        setInterval(advanceDay, 30000); // New day every 30 seconds
+        setInterval(randomEvent, 15000); // Random event every 15 seconds
+    </script>
+</body>
+</html>
